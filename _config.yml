@@ -1,0 +1,23 @@
+title: Manu Gupta
+tagline: Reproductions of machine learning papers
+description: >-
+  Paper reproductions, written up with the code, the figures, and an honest
+  account of what matched and what did not.
+url: https://mgupta8143.github.io
+github_username: mgupta8143
+
+collections:
+  reproductions:
+    output: true
+    permalink: /reproductions/:name/
+
+defaults:
+  - scope: { path: "", type: reproductions }
+    values: { layout: reproduction }
+
+markdown: kramdown
+kramdown:
+  math_engine: mathjax
+  syntax_highlighter: rouge
+
+exclude: [README.md, Gemfile, Gemfile.lock, vendor]
