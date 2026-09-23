@@ -1,20 +1,10 @@
 ---
 layout: default
+title: Reproductions
+permalink: /reproductions/
 ---
 
-# Manu Gupta
-
-<p class="subtitle">Reproducing machine learning papers from scratch.</p>
-
-I pick a paper, implement it without looking at existing code, run the experiments, and write
-down what matched and what didn't. Every reproduction links to a repository you can run.
-
-<p><a href="https://github.com/mgupta8143">GitHub</a> &middot;
-<a href="mailto:mgupta8143@gmail.com">Email</a></p>
-
-<hr>
-
-## Reproductions
+# Reproductions
 
 <ol class="entries">
 {% assign entries = site.reproductions | sort: "date" | reverse %}

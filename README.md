@@ -9,12 +9,12 @@ Create one Markdown file in `_reproductions/`, for example `_reproductions/alexn
 ```markdown
 ---
 title: AlexNet on ImageNet
-paper: Krizhevsky et al. (2012)
+paper: Krizhevsky et al., 2012
 paper_url: https://papers.nips.cc/paper/4824
 code: https://github.com/mgupta8143/alexnet
-status: in progress     # in progress | complete
+status: in progress     # shown next to the title; use "done" when finished
 date: 2026-10-01
-summary: One sentence for the homepage.
+summary: One line for the list on the homepage.
 ---
 
 Write the report here in Markdown. Images go in `assets/`:

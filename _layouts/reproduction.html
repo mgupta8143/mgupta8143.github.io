@@ -1,16 +1,11 @@
 ---
 layout: default
 ---
-<article class="reproduction">
-  <p class="eyebrow">Reproduction{% if page.status %} · <span class="status {{ page.status | slugify }}">{{ page.status }}</span>{% endif %}</p>
-  <h1>{{ page.title }}</h1>
-  {% if page.summary %}<p class="lede">{{ page.summary }}</p>{% endif %}
-
-  <dl class="meta">
-    {% if page.paper %}<dt>Paper</dt><dd>{% if page.paper_url %}<a href="{{ page.paper_url }}">{{ page.paper }}</a>{% else %}{{ page.paper }}{% endif %}</dd>{% endif %}
-    {% if page.code %}<dt>Code</dt><dd><a href="{{ page.code }}">{{ page.code | replace: 'https://github.com/', '' }}</a></dd>{% endif %}
-    {% if page.date %}<dt>Updated</dt><dd>{{ page.date | date: "%B %-d, %Y" }}</dd>{% endif %}
-  </dl>
-
-  {{ content }}
-</article>
+<h1>{{ page.title }}</h1>
+<p class="paper-meta">
+  {% if page.paper %}{% if page.paper_url %}<a href="{{ page.paper_url }}">{{ page.paper }}</a>{% else %}{{ page.paper }}{% endif %}{% endif %}
+  {% if page.code %} &middot; <a href="{{ page.code }}">Code</a>{% endif %}
+  {% if page.status %} &middot; {{ page.status }}{% endif %}
+  {% if page.date %} &middot; updated {{ page.date | date: "%b %-d, %Y" }}{% endif %}
+</p>
+{{ content }}
