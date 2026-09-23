@@ -18,7 +18,8 @@ my results match the original and where they do not.</p>
 how a model stores information and retrieves it later, and what an architecture can and cannot
 represent.</p>
 
-<p><b>Current and previous work:</b> I am an applied AI engineer at <a href="https://dub.money/">Dub</a>,
+<p><b>Current and previous work:</b> I am working on a research project with a PhD student at
+Columbia University. By day I am an applied AI engineer at <a href="https://dub.money/">Dub</a>,
 where I founded and led Arlo, an AI agent product, and built its evaluation infrastructure.
 Previously I was at <a href="https://www.palantir.com/">Palantir Technologies</a> for a year, and
 spent a summer at <a href="https://www.citadel.com/">Citadel</a> as a quantitative developer.</p>

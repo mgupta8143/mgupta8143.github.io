@@ -8,10 +8,15 @@ collections:
   reproductions:
     output: true
     permalink: /reproductions/:name/
+  publications:
+    output: true
+    permalink: /publications/:name/
 
 defaults:
   - scope: { path: "", type: reproductions }
     values: { layout: reproduction }
+  - scope: { path: "", type: publications }
+    values: { layout: default }
 
 markdown: kramdown
 kramdown:

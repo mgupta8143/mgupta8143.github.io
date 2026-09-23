@@ -14,6 +14,7 @@
     <a href="{{ '/' | relative_url }}"{% if page.url == "/" %} class="current"{% endif %}>About</a>
     <a href="{{ '/experience/' | relative_url }}"{% if page.url contains "experience" %} class="current"{% endif %}>Experience</a>
     <a href="{{ '/reproductions/' | relative_url }}"{% if page.url contains "reproduction" %} class="current"{% endif %}>Reproductions</a>
+    <a href="{{ '/publications/' | relative_url }}"{% if page.url contains "publication" %} class="current"{% endif %}>Publications</a>
   </nav>
 </header>
 <main>{{ content }}</main>
