@@ -6,17 +6,6 @@
   --link: #14507d;
   --code-bg: #f4f4f4;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #16181a;
-    --ink: #e6e6e6;
-    --muted: #9a9a9a;
-    --line: #2c2f33;
-    --link: #79b8e8;
-    --code-bg: #101214;
-  }
-}
-
 * { box-sizing: border-box; }
 body {
   margin: 0;
