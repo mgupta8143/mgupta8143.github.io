@@ -7,7 +7,7 @@ layout: default
 
 # Manu Gupta
 
-<p class="role">Software engineer at Dub, New York</p>
+<p class="role">Applied AI Engineer at Dub, New York</p>
 
 <!-- Everything in this file is yours to rewrite. -->
 
@@ -21,7 +21,7 @@ reading existing code, running the experiments, and writing down where the resul
 paper and where they do not.</p>
 
 <p><span class="label">Current and previous work.</span>
-I am a software engineer at Dub, where I founded and led Arlo, an AI agent product, and built the
+I am an applied AI engineer at Dub, where I founded and led Arlo, an AI agent product, and built the
 offline and online evaluation infrastructure behind it. Before that I was at Palantir
 Technologies for a year working on geospatial services, and I spent a summer at Citadel as a
 quantitative developer on the Credit Core team. I studied computer science at Georgia Tech.</p>

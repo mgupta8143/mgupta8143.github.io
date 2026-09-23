@@ -7,7 +7,7 @@ permalink: /experience/
 # Experience
 
 ## Dub
-<p class="role">Software Engineer &middot; New York &middot; September 2025 &ndash; present</p>
+<p class="role">Applied AI Engineer &middot; New York &middot; September 2025 &ndash; present</p>
 
 - Founded and led Arlo, a 0-to-1 AI agent initiative, architected end to end on LangGraph, FastAPI and Arize.
 - Built offline and online evaluation infrastructure for FINRA and SEC compliance of AI-driven features.
