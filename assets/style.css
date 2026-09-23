@@ -56,7 +56,7 @@ p { margin: 0 0 16px; }
 .about .bio p b, .about .bio p strong { font-weight: 700; }
 .about .portrait { flex: none; width: 260px; }
 .about .portrait img {
-  width: 100%; border-radius: 6px; box-shadow: 0 2px 12px rgba(0, 0, 0, .14);
+  width: 100%; border-radius: 14px; box-shadow: 0 2px 14px rgba(0, 0, 0, .13);
 }
 @media (max-width: 720px) {
   .about { flex-direction: column-reverse; }
