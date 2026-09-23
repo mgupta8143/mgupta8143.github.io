@@ -1,0 +1,16 @@
+{% assign entries = site.reproductions | sort: "date" | reverse %}
+{% for entry in entries %}
+<div class="pub">
+  <div class="tag">{{ entry.venue | default: entry.paper }}</div>
+  <div class="body">
+    <div class="title"><a href="{{ entry.url | relative_url }}">{{ entry.title }}</a></div>
+    <div class="who">{{ entry.authors | default: entry.paper }}</div>
+    <div class="where">{{ entry.published_in }}{% if entry.status %}{% if entry.published_in %} &middot; {% endif %}{{ entry.status }}{% endif %}</div>
+    <div class="links">
+      <a href="{{ entry.url | relative_url }}">Report</a>
+      {% if entry.code %}<a href="{{ entry.code }}">Code</a>{% endif %}
+      {% if entry.paper_url %}<a href="{{ entry.paper_url }}">Paper</a>{% endif %}
+    </div>
+  </div>
+</div>
+{% endfor %}

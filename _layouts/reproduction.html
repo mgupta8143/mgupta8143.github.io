@@ -1,6 +1,10 @@
 ---
 layout: default
 ---
-<h1>{{ page.title }}</h1>
-<p class="role">{% if page.paper_url %}<a href="{{ page.paper_url }}">{{ page.paper }}</a>{% else %}{{ page.paper }}{% endif %}{% if page.code %} &middot; <a href="{{ page.code }}">code</a>{% endif %}</p>
-{{ content }}
+<article>
+  <h1 style="font-size:2.2rem">{{ page.title }}</h1>
+  <p class="subtitle">
+    Reproduction of {% if page.paper_url %}<a href="{{ page.paper_url }}">{{ page.paper }}</a>{% else %}{{ page.paper }}{% endif %}{% if page.code %} &middot; <a href="{{ page.code }}">code</a>{% endif %}{% if page.status %} &middot; {{ page.status }}{% endif %}
+  </p>
+  {{ content }}
+</article>

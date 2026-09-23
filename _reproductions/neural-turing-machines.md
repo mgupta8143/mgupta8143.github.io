@@ -1,6 +1,9 @@
 ---
 title: Neural Turing Machines
 paper: Graves, Wayne & Danihelka, 2014
+venue: NTM
+authors: Alex Graves, Greg Wayne, Ivo Danihelka
+published_in: arXiv:1410.5401, 2014
 paper_url: https://arxiv.org/abs/1410.5401
 code: https://github.com/mgupta8143/neural-turing-machines
 status: in progress
