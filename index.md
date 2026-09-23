@@ -5,8 +5,7 @@ layout: default
 <div class="intro">
 <div class="text">
 
-# Manu Gupta
-
+<h1>Manu Gupta</h1>
 <p class="role">Applied AI Engineer at Dub, New York</p>
 
 <!-- Everything in this file is yours to rewrite. -->
@@ -40,7 +39,7 @@ quantitative developer on the Credit Core team. I studied computer science at Ge
 </figure>
 </div>
 
-## Selected reproductions
+<h2>Selected reproductions</h2>
 
 <ul class="bare">
 {% assign entries = site.reproductions | sort: "date" | reverse %}
