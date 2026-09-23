@@ -4,26 +4,29 @@ Personal research site: reproductions of machine learning papers.
 
 ## Adding a reproduction
 
-Create one Markdown file in `_reproductions/`, for example `_reproductions/alexnet.md`:
+Copy `_reproductions/_template.md` to `_reproductions/your-paper.md`, delete the
+`published: false` line, and fill it in. It appears on the homepage and on /reproductions/
+automatically, newest first.
 
-```markdown
----
-title: AlexNet on ImageNet
-paper: Krizhevsky et al., 2012
-paper_url: https://papers.nips.cc/paper/4824
-code: https://github.com/mgupta8143/alexnet
-status: in progress     # shown next to the title; use "done" when finished
-date: 2026-10-01
-summary: One line for the list on the homepage.
----
+The template has the section order I use: summary, the claim, setup with a paper-vs-mine table,
+what I built, results, what matched, what did not, what cost me time, open questions, and how to
+run it.
 
-Write the report here in Markdown. Images go in `assets/`:
+Figures go in `assets/` and are referenced as `/assets/name.png`. Diagrams can be drawn and saved
+as images, or written inline in a ```mermaid code block, which renders in the browser.
 
-![Learning curve](/assets/alexnet-curve.png)
-```
+## Front matter
 
-It appears on the homepage automatically, newest first. Commit and push; GitHub Pages rebuilds
-the site in about a minute.
+| Field | Used for |
+|---|---|
+| `title` | heading and list entry |
+| `paper`, `paper_url` | the citation and its link |
+| `code` | link to the repository |
+| `venue` | the small tag box at the left of a list entry |
+| `authors`, `published_in` | the citation lines under the title |
+| `status` | `in progress` or `done` |
+| `date` | sort order |
+| `summary` | one line on the list |
 
 ## Previewing locally (optional)
 

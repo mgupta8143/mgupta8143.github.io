@@ -115,3 +115,12 @@ table { border-collapse: collapse; margin: 18px 0; font-size: .95rem; }
 th, td { text-align: left; padding: 6px 20px 6px 0; border-bottom: 1px solid var(--line); }
 blockquote { margin: 18px 0; padding-left: 18px; border-left: 3px solid var(--line); color: var(--grey); }
 hr { border: none; border-top: 1px solid var(--line); margin: 40px 0; }
+
+/* figures inside reports */
+article figure { margin: 26px 0; }
+article figure img { width: 100%; border: 1px solid var(--line); border-radius: 4px; }
+article figcaption { color: var(--grey); font-size: .9rem; margin-top: 8px; }
+article h2 { font-size: 1.6rem; margin-top: 44px; }
+article h3 { margin-top: 26px; }
+article table { width: 100%; }
+.mermaid { margin: 26px 0; text-align: center; }
