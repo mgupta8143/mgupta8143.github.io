@@ -27,6 +27,7 @@ permalink: /experience/
 - Worked on the unified persistence library and risk calculation engine for the Credit Core team.
 - Architected a BigQuery integration for sub-second queries over petabyte-scale hive-partitioned Parquet.
 - Built profiling and error-analysis tooling for live risk cycles.
+- Received a return offer.
 
 ## Palantir Technologies
 <p class="role">Software Engineer Intern &middot; Washington DC &middot; Summer 2023</p>
