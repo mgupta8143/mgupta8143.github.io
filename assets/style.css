@@ -116,6 +116,11 @@ th, td { text-align: left; padding: 6px 20px 6px 0; border-bottom: 1px solid var
 blockquote { margin: 18px 0; padding-left: 18px; border-left: 3px solid var(--line); color: var(--grey); }
 hr { border: none; border-top: 1px solid var(--line); margin: 40px 0; }
 
+.lede {
+  font: 400 1.22rem/1.5 "Source Serif 4", Charter, Georgia, serif;
+  color: var(--ink); max-width: 38rem; margin: 0 auto 30px;
+  padding-bottom: 26px; border-bottom: 1px solid var(--line);
+}
 /* reports read like a paper: a narrow serif column, with figures breaking out wider */
 article > * { max-width: 38rem; margin-left: auto; margin-right: auto; }
 article p, article li {
