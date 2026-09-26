@@ -211,15 +211,22 @@ from the top of this page, to the decimal.
 Copy only needs the network to walk in a straight line. Associative recall needs indirection —
 finding a thing, then finding what sits next to it — which is the part the paper argues an
 external memory is genuinely better at than an LSTM's internal state. If that is right, the gap
-between the NTM and the baseline should be wider here than on copy.
+between the NTM and the baseline should be wider here than on copy. As with copy, the comparison
+to watch is the plain LSTM against the NTM with an LSTM controller.
+
+### Learning curves
 
 <figure>
-  <img src="/assets/ntm-recall-curves.png" alt="Learning curves for three models on associative recall">
-  <figcaption>Both NTMs fall off a cliff between 20k and 40k sequences and hold exactly zero.
-  The LSTM grinds from 18 bits — chance — down to 6.6 and flattens out without solving it. The
-  feed-forward run was stopped at 172k, and the dashed segment after that is drawn, not measured.
-  Compare the paper's Figure 10.</figcaption>
+  <img src="/assets/ntm-recall-curves-lstm-vs-ntm.png" alt="Learning curves on associative recall: the NTM with an LSTM controller drops to zero by 40,000 sequences, the LSTM flattens out around 7 bits">
+  <figcaption><strong>The LSTM (blue) against the NTM with an LSTM controller (green) on
+  associative recall.</strong> Cost per sequence in bits, averaged over every 10,000 sequences;
+  chance is 18 bits. Left, the whole run; right, the same curves cut off at 10 bits. The NTM
+  falls off a cliff between 20,000 and 40,000 sequences and stays near zero. The LSTM grinds from
+  chance down to about 6.6 bits and flattens out around 300,000 without solving it. Compare the
+  paper's Figure 10.</figcaption>
 </figure>
+
+The feed-forward NTM isn't drawn; it falls off the same cliff slightly later. All three:
 
 | | first below 0.05 bits | windows at exactly zero | run length |
 |---|---|---|---|
@@ -227,35 +234,50 @@ between the NTM and the baseline should be wider here than on copy.
 | NTM, LSTM controller | **22,000** | 384 of 500 | 500,000 |
 | LSTM | never | 0 of 500 | 500,000 |
 
-Both NTMs drop off a cliff between 20k and 40k sequences. Neither then sits at zero cleanly:
-each has occasional spikes for the rest of the run, with the longest unbroken stretch of
-exactly-zero windows being about 67,000 sequences for each. I stopped the feed-forward run at
-172,000; the other two ran the full 500,000. The LSTM grinds from 18 bits to 6.6 and flattens out
-around 300,000 without solving it.
-The paper puts its NTM at "near zero cost within approximately 30,000 episodes, whereas LSTM
-does not reach zero cost after a million". Mine crosses 0.05 bits at 22,000 and 39,000.
+Neither NTM sits at zero cleanly once it gets there: each has occasional spikes for the rest of
+the run, and the longest unbroken stretch of exactly-zero windows is about 67,000 sequences for
+each. I stopped the feed-forward run at 172,000; the other two ran the full 500,000. The paper
+puts its NTM at "near zero cost within approximately 30,000 episodes, whereas LSTM does not reach
+zero cost after a million". Mine crosses 0.05 bits at 22,000 and 39,000.
 
-Generalisation on this task means more items than the network was trained on, so the sweep runs
-from six items up to twenty against a training maximum of six. This is the figure where my numbers came
-out better than the published ones, which I did not expect.
+### More items than it was trained on
+
+Generalisation on this task means longer lists than the network was trained on. Training used 2
+to 6 items; the tests below go up to 20. This is where my numbers came out better than the
+published ones, which I did not expect.
+
+<figure>
+  <img src="/assets/ntm-recall-examples.png" alt="One associative recall episode each at 6, 12 and 20 items, with the target and the answers from the LSTM and the NTM with an LSTM controller">
+  <figcaption><strong>The same three episodes given to both models.</strong> Each row is one
+  episode: 6 items (the most seen in training), 12 and 20. On the left is the input, one column
+  per timestep. Each item is three columns of six bits with a delimiter step between items, and
+  the queried item is repeated at the end after the query delimiter (the bottom row). On the
+  right is the item that followed the query in the list, which is the target, then each model's
+  answer. Dark red is 1, dark blue is 0, anything in between is the model hedging; the count
+  under each answer is bits wrong after rounding. The NTM gets all three exactly right. The LSTM
+  hedges on every one, including the 6-item episode that is within its training range.</figcaption>
+</figure>
 
 <figure>
   <img src="/assets/ntm-recall-generalisation.png" alt="Cost against number of items per sequence for three models">
-  <figcaption>Trained on 2 to 6 items, both NTMs stay under 1.5 bits out to 20 items — better at
-  every point measured than the paper's Figure 11, where its best model is at 6.8 bits there.</figcaption>
+  <figcaption><strong>Cost against list length, all three models.</strong> 200 episodes per
+  point; the dotted line is the most items seen in training. Both NTMs are at zero out to 10
+  items and still under 2.5 bits at 20. The paper's best model is at 6.8 bits at 20 items in its
+  Figure 11, so mine are better at every point measured. The LSTM starts at 15 bits and gets
+  worse.</figcaption>
 </figure>
 
-Cost per sequence in bits, 200 episodes per point:
+Cost per sequence in bits, 200 episodes per point, the same episodes as the figure:
 
 | items per sequence | 6 | 10 | 15 | 20 |
 |---|---|---|---|---|
-| LSTM | 15.05 | 18.43 | 19.39 | 20.34 |
-| NTM, feed-forward | **0.00** | **0.00** | **0.10** | 2.33 |
-| NTM, LSTM controller | **0.00** | **0.00** | **0.00** | **0.97** |
+| LSTM | 15.02 | 17.96 | 19.67 | 21.42 |
+| NTM, feed-forward | **0.00** | **0.00** | **0.12** | 2.40 |
+| NTM, LSTM controller | **0.00** | **0.00** | **0.00** | **1.29** |
 
 The paper describes its own feed-forward NTM as "nearly perfect for sequences of up to 12 items
 (twice the maximum length used in training)", and "still has an average cost below 1 bit per
-sequence for sequences of 15 items". Mine is at 0.10 bits at 15 items and 0.00 at 12, and the
+sequence for sequences of 15 items". Mine is at 0.02 bits at 12 items and 0.12 at 15, and the
 LSTM-controller one is at exactly zero out to 15. At twenty items, well past anything the paper
 reports, both of mine are still under 2.5 bits.
 
@@ -266,8 +288,11 @@ in the order I'd check them. I clip gradients by norm where the paper clips elem
 documented above that elementwise clipping is what destroys the addressing — so my late-training
 stability may simply be better than theirs. I train at batch 1, which the paper never states.
 And I read their numbers off Figure 11 rather than from a table, so the two axes may not be
-measuring the same thing. I'd want the last one ruled out first. Read those numbers as estimates with real noise: at 15 items a 50-episode
-sample gave me 1.77 for the feed-forward model where 200 episodes gives 0.10.
+measuring the same thing. I'd want the last one ruled out first. Read those numbers as estimates
+with real noise: at 15 items a 50-episode sample gave me 1.77 for the feed-forward model where
+200 episodes gives 0.12.
+
+### What it's doing in memory
 
 <figure>
   <img src="/assets/ntm-recall-memory.png" alt="Memory use during an associative recall episode">
