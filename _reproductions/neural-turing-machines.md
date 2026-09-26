@@ -6,23 +6,29 @@ authors: Alex Graves, Greg Wayne, Ivo Danihelka
 published_in: arXiv:1410.5401, 2014
 paper_url: https://arxiv.org/abs/1410.5401
 code: https://github.com/mgupta8143/neural-turing-machines
-status: in progress
+status: done
 date: 2026-09-26
 summary: Copy and associative recall reproduced from scratch. Both NTMs reach zero cost, the LSTM baseline never does, and shrinking the memory below the input size shows the network packing two vectors into one slot.
 ---
 
-I rebuilt the Neural Turing Machine from the paper and ran two of its five tasks: copy and
-associative recall. Both NTM variants reach exactly zero cost on both tasks while the LSTM
-baseline never does, which is the paper's central claim and it holds. On associative recall the
-reproduction generalises *better* than the published numbers at every point measured, which I
-cannot account for. Along the way I found four details the paper omits that decide whether the
-model trains at all, and one it does not mention that decides how fast.
+I chose a reproduction because you cannot fudge one. The answer is already published: either your
+curve lands on theirs or it does not, and if it does not you have to say so and work out why.
 
-Then I ran an experiment that is not in the paper: shrinking the memory below the size of the
-input, to see what the network does when the obvious strategy stops being available. It packs
-two vectors into one memory slot and recovers both.
+It also covers most of what research engineering actually is. You have to read the method closely
+enough to implement it, and build enough infrastructure to run it. Then you have to publish the
+gap.
 
-## The claim
+So I rebuilt the Neural Turing Machine from the paper and ran two of its five tasks: copy and
+associative recall. Both NTM variants reach exactly zero cost on both tasks and the LSTM baseline
+never does. That is the paper's central claim, and it held up. On associative recall the
+reproduction generalises *better* than the published numbers at every point I measured, and I
+cannot account for it. Four details the paper omits decide whether the model trains at all, and a
+fifth thing it never mentions decides how fast.
+
+Then, once I had something that worked, I ran an experiment the paper does not: shrinking the
+memory below the size of the input. It packs two vectors into one memory slot and recovers both.
+
+## The claim worth checking
 
 The paper argues that a neural network given an external memory and a differentiable way to
 address it will learn *algorithms* rather than just fit the task. It supports this with Figure 6,
@@ -44,9 +50,9 @@ while true do
 end while
 ```
 
-That is a strong claim, and it is the reason this paper is worth rebuilding rather than reading.
-The learning curves are easy to believe. Whether the thing in the memory is really an algorithm
-is the part that needs checking.
+That is a strong claim, and it is why I wanted to build the thing. The learning curves I believed
+on sight. Whether what ends up in the memory deserves to be called an algorithm is what I wanted
+to see for myself.
 
 ## Setup
 
@@ -100,13 +106,13 @@ src/tasks/<task>/              data.py makes the task, plots.py draws its figure
 
 Everything above `src/tasks/` is task-agnostic: a new task is a data module and a settings entry.
 
-Two decisions were mine rather than the paper's. Gradients are clipped by **norm** for the NTMs,
-because NTM gradient norms spike to hundreds of times their median and the paper's elementwise
-clipping turns one of those spikes into an update that destroys the addressing the model has
-learned. And the initial memory is **random rather than constant**, because identical rows give
-every location identical gradients and the 128 locations never differentiate.
+Two of the choices here were mine, not the paper's. The NTMs are clipped by gradient **norm**:
+their norms spike to hundreds of times the median, and elementwise clipping lets one of those
+spikes through as an update that wipes out the addressing the model has learned. The initial
+memory is **random**. With identical rows, every location gets an identical gradient and the 128
+of them never differentiate.
 
-## Results: copy
+## Copy
 
 <figure>
   <img src="/assets/ntm-copy-curves.png" alt="Learning curves for three models on the copy task">
@@ -145,11 +151,11 @@ neither mistake.
   written, write weightings. Right: output, vectors read, read weightings.</figcaption>
 </figure>
 
-The diagonal is the whole story. Measured on the trained model the write head advances +1.00
-memory locations per timestep with its weighting pinned at 0.999, and the read head retraces the
-same path. That is the paper's pseudocode, learned from gradients.
+Measured on the trained model, the write head advances +1.00 memory locations per timestep with
+its weighting pinned at 0.999, and the read head retraces the same path. That is the pseudocode
+above.
 
-## Results: associative recall
+## Associative recall
 
 <figure>
   <img src="/assets/ntm-recall-curves.png" alt="Learning curves for three models on associative recall">
@@ -191,14 +197,21 @@ count, so it is not capacity, and the settings are the ones the tables specify.
   black the write the query is later looked up by.</figcaption>
 </figure>
 
-## Beyond the paper: what happens when the memory runs out
+## Taking the memory away
 
-Every published NTM result gives the network more memory than it needs — 128 slots to remember
-at most 20 vectors. So it never has to be clever. The paper knows memory size is the binding
-constraint, and says so in a footnote about why copy generalisation eventually breaks: *"The
-limiting factor was the size of the memory (128 locations), after which the cyclical shifts
-wrapped around and previous writes were overwritten."* It hits that wall by making sequences
-longer. I came at it from the other side, by making memory smaller, which is easier to control.
+By this point I had a working model and all the probing and plotting code I had written earlier
+to find out why it wasn't working. New questions were suddenly cheap. The one I wanted was about
+memory size.
+
+Every published NTM result gives the network far more memory than it needs — 128 slots to hold at
+most 20 vectors. Six times the room the obvious strategy requires, so the model is never under
+pressure. I could not find a published run with less.
+
+The paper knows memory size is the binding constraint and says so, in a footnote explaining why
+copy generalisation eventually breaks: *"The limiting factor was the size of the memory (128
+locations), after which the cyclical shifts wrapped around and previous writes were
+overwritten."* But it only ever hits that wall from one side, by making sequences longer. Holding
+the task fixed and taking memory away instead is easier to control and easier to measure.
 
 Nine feed-forward NTMs, copy task, lengths 1 to 20 as before, 30,000 sequences each. The only
 thing that changes between runs is the shape of the memory. The feed-forward controller is the
@@ -234,12 +247,12 @@ At twenty slots there is one bright diagonal: one vector per slot, as the paper 
 twelve there are **two** diagonals — slot 1 holds vector 1 *and* vector 13, and both come back
 out. 1.67 is exactly 20/12, so every vector is accounted for and the load is even. Slots per
 vector stays at 1.00 throughout, which rules out the other explanation: nothing is being smeared
-across slots. Each vector lives in one place, and at twelve slots some places hold two.
+across slots.
 
-The eight-slot model is the interesting failure. It does not pack harder under more pressure —
-it packs *less*, 1.25 against 1.67, and abandons half the sequence. Ten of twenty positions are
-not recoverable from memory at all. Faced with a constraint it cannot meet it keeps part of the
-input intact and drops the rest, rather than degrading everything evenly.
+Eight slots is where it breaks, and it breaks the wrong way round. Under more pressure it packs
+*less*: 1.25 vectors per slot against 1.67 at twelve. Ten of the twenty positions are not
+recoverable from memory at all. So it gives up on half the sequence and keeps the other half
+clean. I had expected the error to spread out.
 
 <figure>
   <img src="/assets/ntm-pressure-memory.png" alt="Write and read weightings for memories of 20, 12 and 8 slots">
@@ -247,7 +260,7 @@ input intact and drops the rest, rather than degrading everything evenly.
   of memory, wraps to the start, and lays a second diagonal over the first.</figcaption>
 </figure>
 
-### The constraint is addresses, not capacity
+### It runs out of addresses, not room
 
 Every memory in the control arm holds the same 400 numbers, arranged differently:
 
@@ -259,10 +272,9 @@ Every memory in the control arm holds the same 400 numbers, arranged differently
 | 2 × 200 | 400 | 106,024 | 35.1% |
 
 Same storage, and error climbs from nothing to a third of the bits purely by giving the network
-fewer places to address. The sharpest version: **12 slots of width 20 holds 240 numbers and
-scores 0.0%, while 8 slots of width 50 holds 400 numbers, has twice the parameters, and scores
-24.2%.** More room, worse result. What the network needs is somewhere to point, not somewhere to
-put things.
+fewer places to address. **Twelve slots of width 20 hold 240 numbers and score 0.0%. Eight slots
+of width 50 hold 400 numbers, cost twice the parameters, and score 24.2%.** More room, worse
+result.
 
 One caveat on this section: one training run per configuration. The clearest sign that matters is
 16 slots scoring 7.4% where 12 scores 0.0%, which is almost certainly training variance rather
@@ -273,8 +285,8 @@ than a real non-monotonicity, and it means the exact breaking point is not pinne
 The shape and separation of the learning curves on both tasks. Zero cost for both NTMs and a
 baseline that never gets there. Perfect copy generalisation far past the training range, and the
 LSTM's failure mode including the shrinking accurate prefix. The learned copy algorithm visible
-in the memory traces, at +1.00 locations per timestep. The convergence point on associative
-recall, 37,000 sequences against the paper's approximately 30,000.
+in the memory traces, at +1.00 locations per timestep. Associative
+recall converged at 37,000 sequences, against the paper's approximately 30,000.
 
 ## What didn't
 
@@ -285,12 +297,12 @@ measured. Two tasks, neither confirming the ordering.
 
 **Parameter counts**, by 2 to 16%, as above. I believe this one is the paper's.
 
-**Generalisation on associative recall**, where I am better than the published result rather than
-worse. This is the one I would most like an explanation for.
+**Generalisation on associative recall**, where I come out better than the published result.
+Still unexplained.
 
-## What cost me time
+## What the paper leaves out
 
-Four things the paper omits decide whether it trains at all.
+Roughly in the order of how much time each one cost me.
 
 **RMSProp as Graves (2013) defines it.** Section 4.6 cites that form without stating it: centered,
 decay 0.95, damping 1e-4 inside the square root. PyTorch's defaults are 0.99 and 1e-8, and that
@@ -299,8 +311,8 @@ controller's recurrent matrix. With the defaults my LSTM-controller NTM reached 
 *drifted back off it*: by the end of a million sequences it was 46% wrong at length 50. With the
 paper's form it sits at 0.0000 for 450,000 consecutive sequences.
 
-**Clip the norm, not each component.** Described above. This was the difference between diverging
-mid-run and reaching zero.
+**Clip the norm, not each component.** Described above. Clipped elementwise, the run diverged
+partway through. Clipped by norm, it reached zero.
 
 **The starting memory has to break symmetry.** With identical rows every location is
 interchangeable, gradients are identical, and the locations never differentiate. On a
@@ -311,8 +323,7 @@ constant.
 weights at a high power underflow float32 to zero, the renormalisation divides by zero, and the
 head attends to nothing. `softmax(γ log w)` is the same expression and is stable.
 
-And one that decides how *fast* it trains, which surprised me enough to be my favourite finding
-here. **The range of training lengths matters more than the lengths themselves.** Holding the
+And one that decides how *fast* it trains, which is the one thing here I did not expect at all. **The range of training lengths matters more than the lengths themselves.** Holding the
 model, the loop and the seed fixed and changing only the range on the copy task:
 
 | lengths trained on | cost at 10,000 sequences | converged |
@@ -322,11 +333,11 @@ model, the loop and the seed fixed and changing only the range on the copy task:
 | **1 to 10** | **27.0, 29.8, 30.5** (three seeds) | **no** |
 | fixed length 10 | 61.5 | no |
 
-A narrower range does not make the task easier, it makes it untrainable — and a *degenerate*
-range is worse still than a narrow one. My reading is that the short examples in a wide range are
-what break the addressing symmetry cheaply, and everything else bootstraps off them. This is why
-I ran the memory-pressure study on a range of lengths rather than pinning the sequence, which
-would have measured the wrong failure.
+Narrowing the range does not make the task easier. At 1 to 10 it stops training at all, on three
+seeds. A fixed length is worse again. My reading is that the short examples in a wide range are
+what break the addressing symmetry cheaply, and everything else bootstraps off them. It is why I
+ran the memory-pressure study on a range of lengths rather than pinning the sequence. Pinning it
+would have measured a different failure.
 
 ## Open questions
 
@@ -346,8 +357,8 @@ three.
 
 **What makes two writes to one slot survive each other?** The mechanism is described but not
 explained. Either the erase vector learns to spare what is already there, or the two add vectors
-land in parts of the slot that do not overlap. Both are already in the trace, so it is a
-measurement rather than another experiment.
+land in parts of the slot that do not overlap. Both would show up in traces I already have. No new
+training.
 
 ## Running it
 
@@ -362,6 +373,6 @@ It starts at 84 bits, which is chance, and should be near zero inside ten thousa
 That takes a few minutes on a laptop. Everything takes `--task`, which defaults to copy.
 
 Most of the results here came off rented A10Gs through Modal. The NTM is slower on a GPU than a
-CPU if you run it naively, because it launches a few hundred tiny kernels per sequence; the
-training step is captured as a CUDA graph, one per sequence length, which is what makes a GPU
-worth paying for.
+CPU if you run it naively, because it launches a few hundred tiny kernels per sequence. I capture
+the training step as a CUDA graph, one per sequence length, and then the GPU is worth paying
+for.
