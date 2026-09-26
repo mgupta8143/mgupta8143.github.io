@@ -140,6 +140,14 @@ weights at a high power underflow float32 to zero and the head ends up attending
 
 ## Copy: both NTMs reach zero, the LSTM never does
 
+Each model trained for 500,000 sequences at one sequence per update, which is about 100 minutes
+on a rented A10G for the NTMs and rather less for the LSTM. The question the curve answers is
+not whether the NTM is better — the paper has already told you it is — but whether the *gap* is
+the size the paper claims, and whether the LSTM fails in the way it describes.
+
+It is, and it does. Both NTMs drop to zero inside the first few thousand sequences and the LSTM
+spends half a million getting to one bit.
+
 <figure>
   <img src="/assets/ntm-copy-curves.png" alt="Learning curves for three models on the copy task">
   <figcaption>Both NTMs reach zero cost inside the first 10,000 sequences and hold it for the
@@ -158,6 +166,11 @@ Both NTMs solve the task inside the first few thousand sequences. Neither holds 
 afterwards — both spike occasionally, the LSTM-controller one as late as 46,000 — but the
 LSTM-controller run then sits at exactly 0.0000 for its last 399,000 sequences unbroken. The
 LSTM baseline needs the whole run to reach about one bit.
+
+Reaching zero on the training distribution is the easy half. The paper's real claim is that the
+NTM learned something that keeps working outside it, so the test is to feed a trained model
+sequences far longer than any it saw. If it memorised, the output degrades as soon as you leave
+the training range. If it learned to use the memory, length should not matter much.
 
 <figure>
   <img src="/assets/ntm-copy-generalisation.png" alt="NTM outputs and targets at lengths 10, 20, 30, 50 and 120">
@@ -180,6 +193,10 @@ paper's own result: its Figure 4 caption reports "a few more local errors and on
 at length 120, where a vector is duplicated and everything after it shifts by one. Mine makes
 neither mistake.
 
+So it generalises. The next question is *how*, and this is where an NTM is more satisfying than
+most models: you can just look. Every read and write leaves a weighting over memory, so the
+addressing is visible timestep by timestep rather than having to be inferred.
+
 <figure>
   <img src="/assets/ntm-copy-memory.png" alt="Write and read weightings over time on a length-40 copy">
   <figcaption>The write head lays one sharp diagonal as the input arrives and the read head
@@ -192,6 +209,11 @@ its weighting pinned at 0.999, and the read head retraces the same path. That is
 above.
 
 ## Associative recall: zero cost at 37,000 sequences
+
+Copy only needs the network to walk in a straight line. Associative recall needs indirection —
+finding a thing, then finding what sits next to it — which is the part the paper argues an
+external memory is genuinely better at than an LSTM's internal state. If that is right, the gap
+between the NTM and the baseline should be wider here than on copy.
 
 <figure>
   <img src="/assets/ntm-recall-curves.png" alt="Learning curves for three models on associative recall">
@@ -214,6 +236,10 @@ exactly-zero windows being about 67,000 sequences for each. I stopped the feed-f
 around 300,000 without solving it.
 The paper puts its NTM at "near zero cost within approximately 30,000 episodes, whereas LSTM
 does not reach zero cost after a million". Mine crosses 0.05 bits at 22,000 and 39,000.
+
+Generalisation on this task means more items than the network was trained on, so the sweep runs
+from six items up to twenty against a training maximum of six. This is the figure where my
+numbers came out better than the published ones, which I did not expect and still cannot explain.
 
 <figure>
   <img src="/assets/ntm-recall-generalisation.png" alt="Cost against number of items per sequence for three models">
@@ -250,9 +276,19 @@ sample gave me 1.77 for the feed-forward model where 200 episodes gives 0.10.
 
 ## New experiment: taking the memory away
 
-By this point I had a working model and all the probing and plotting code I had written earlier
-to find out why it wasn't working. New questions were suddenly cheap. The one I wanted was about
-memory size.
+Reproducing the paper tells you the network learns the algorithm the paper says it learns. What I
+wanted to know was whether that is the *only* algorithm it has, or just the one the task happened
+to ask for.
+
+Because the algorithm in the paper is not complicated. Write each vector to the next slot along,
+walk back to the start, read them out in order. My traces confirm it exactly — the write head
+moves +1.00 slots per timestep with its weighting pinned at 0.999, and the read head retraces the
+same path. It is a tape.
+
+But it only ever has to be a tape because the memory is enormous. 128 slots to hold at most 20
+vectors is six times more room than the obvious strategy needs, so the network is never once put
+in a position where the obvious strategy fails. I wanted to put it in that position and see what
+came out.
 
 Every published NTM result gives the network far more memory than it needs — 128 slots to hold at
 most 20 vectors. Six times the room the obvious strategy requires, so the model is never under
