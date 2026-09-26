@@ -417,17 +417,10 @@ about when the paper says it should.
   that works half the time isn't a reproduction, so I left it out. The code is in the git history
   if you want to have a go.
 
-**If I keep going, here's what's next:**
-
-- **Is it really reading the memory?** Overwrite a slot halfway through recall and see whether
-  the output changes to match. If the network had quietly memorised everything in its controller
-  instead, it wouldn't. No training needed, so this one is cheap.
-- **Why is my recall better?** Rerun it with the paper's exact setup and see which difference
-  matters.
-- **How far can the packing go?** Would a 12-slot model squeeze three vectors into a slot on
-  longer sequences? And how do two writes to the same slot not wipe each other out? Either the
-  erase learns to leave the old contents alone, or the two vectors land in different parts of
-  the slot. The traces I already have should show which.
+**If I keep going, here's what's next: how far can the packing go?** Would a 12-slot model
+squeeze three vectors into a slot on longer sequences? And how do two writes to the same slot not
+wipe each other out? Either the erase learns to leave the old contents alone, or the two vectors
+land in different parts of the slot. The traces I already have should show which.
 
 ## Running it
 
