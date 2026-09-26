@@ -87,30 +87,25 @@ Figure 2. If you only open one file, open that one.
 
 ## Four omissions that decide whether it trains
 
-Roughly in the order of how much time each one cost me.
+In order of how much time each one cost me:
 
-**RMSProp as Graves (2013) defines it.** Section 4.6 cites that form without stating it:
-centered, decay 0.95, damping 1e-4. PyTorch's defaults are 0.99 and 1e-8, and that 1e-8 inflates
-the update wherever gradient variance is small — which is most of an LSTM controller's recurrent
-matrix. With the defaults the model reaches zero and then drifts back off it.
+- **Use RMSProp as Graves (2013) defines it.** The paper cites this form without stating it:
+  centered, decay 0.95, damping 1e-4. PyTorch's defaults (0.99 and 1e-8) make updates too large
+  wherever gradient variance is small, so the model reaches zero cost and then drifts back off it.
+- **Clip the gradient norm, not each component.** Strictly a deviation, since the paper does say
+  to clip each component to (-10, 10). But gradient spikes reach 566 to 176,000 times their
+  running median, and elementwise clipping lets them through as updates big enough to wreck the
+  addressing.
+- **Start memory with rows that differ.** Identical rows get identical gradients, so the 128
+  locations never differentiate and the model stays near chance.
+- **Compute sharpening in log space.** Equation 9 raises the weighting to a power, which
+  underflows small weights to zero in float32 and leaves the head attending to nothing.
+  `softmax(γ log w)` is the same expression and doesn't underflow.
 
-**Clip the gradient norm, not each component.** This one is a deviation rather than an omission,
-since the paper does specify elementwise clipping. But with the paper's optimiser, pre-clip
-gradient norms peak at 566 to 176,000 times their running median, and clipping each component to
-(-10, 10) lets a spike like that through as an update large enough to destroy the addressing.
+### A fifth: the range of training lengths
 
-**The starting memory has to break symmetry.** Identical rows means every location gets an
-identical gradient, so the 128 of them never differentiate and the model sits near chance.
-
-**Sharpening underflows if written literally.** Equation 9 raises the weighting to a power; small
-weights at a high power underflow float32 to zero and the head ends up attending to nothing.
-`softmax(γ log w)` is the same expression and survives.
-
-And a fifth, which isn't an omission so much as something the paper had no reason to mention:
-**the range of training lengths decides whether it trains at all.** Copy draws its sequence
-length from 1 to 20. I tried narrowing that, expecting shorter sequences to be easier, and got
-the opposite. Chance differs with the range, so the comparable number is cost as a fraction of
-it:
+Copy trains on lengths drawn from 1 to 20. I expected a narrower range to be easier; it made
+training fail. Costs are shown as a percentage of chance, since chance changes with the range:
 
 | lengths trained on | cost at 10,000 sequences, as % of chance | solved by 10,000 |
 |---|---|---|
@@ -119,18 +114,16 @@ it:
 | **1 to 10** | **61.4%, 67.7%, 69.4%** (three seeds) | **0 of 3** |
 | fixed length 10 | 76.9% (one seed) | no |
 
-The two arms don't overlap — the worst 1-to-20 seed still beats the best 1-to-10 seed, and no
-1-to-10 seed gets below 61% of chance inside the budget. A fixed length is worse again. But only
-one of the three 1-to-20 seeds actually solved it in 10,000 sequences, so I'd describe the
-separation as real and the speed as not pinned down.
+- **Narrow ranges fail.** The worst 1-to-20 seed beats the best 1-to-10 seed, and no 1-to-10
+  seed gets below 61% of chance. A fixed length is worse still.
+- **Speed isn't pinned down.** Only one of the three 1-to-20 seeds solved it within 10,000
+  sequences.
+- **My guess at why:** short sequences in a wide range break the addressing symmetry cheaply, and
+  everything else builds on them. Take them away and there's nothing to start from.
+- **This is why the memory experiment below trains on a range of lengths.** A fixed length would
+  have measured this failure instead of the one I was after.
 
-My guess is that the short examples in a wide range are what break the addressing symmetry
-cheaply, and everything else bootstraps off them. Narrowing the range removes the easy examples
-and there's nothing left to start from. This is also why I ran the memory experiment below on a
-range of lengths rather than pinning the sequence — pinning it would have measured this failure
-instead of the one I was after.
-
-## Copy: both NTMs reach zero, the LSTM never does
+## Copy
 
 Each model trained for 500,000 sequences at one sequence per update, which is about 100 minutes
 on a rented A10G for the NTMs and rather less for the LSTM. I already knew the NTM would win; the
@@ -200,7 +193,7 @@ Measured on the trained model, the write head advances +1.00 memory locations pe
 its weighting pinned at 0.999, and the read head retraces the same path. That is the algorithm
 from the top of this page, to the decimal.
 
-## Associative recall: the NTMs solve it, the LSTM never gets close
+## Associative recall
 
 Copy only needs the network to walk in a straight line. Associative recall needs indirection —
 finding a thing, then finding what sits next to it — which is the part the paper argues an
