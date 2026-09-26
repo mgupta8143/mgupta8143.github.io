@@ -394,33 +394,40 @@ Caveats:
 - **Copy can't reuse slots.** Nothing is output until the whole input has been read, so this says
   nothing about tasks where the network could recycle memory.
 
+<p class="callout">Honestly, this one surprised me. Nobody told the network to compress anything.
+Given too few slots, it came up with its own way of packing two vectors into one slot, split them
+perfectly evenly, and still read both back out.</p>
+
 ## Conclusion
 
-**What matched.** On both tasks, both NTMs reach zero cost and the LSTM never does. Copy
-generalises to six times its training length with no errors, and the tape algorithm is right
-there in the memory traces. Associative recall converges at about the point the paper says.
+**The short version: the paper holds up.** On both tasks, both NTMs hit zero cost and the LSTM
+never gets there. Copy works at six times its training length without a single error, and you
+can actually see the tape algorithm in the memory traces. Associative recall converges right
+about when the paper says it should.
 
-**What didn't.**
+**A few things didn't line up:**
 
-- **Parameter counts** are 1.3 to 16.2% off. I think the mistake is the paper's.
-- **Recall generalisation** is better than published, for reasons I can't pin down yet.
-- **Which controller learns faster.** The paper says the feed-forward one, on associative
-  recall. On copy mine agrees (5,000 sequences against 10,000); on recall it's reversed (39,000
-  against 22,000). One seed each, so I wouldn't lean on it.
-- **Repeat copy** (Section 4.2) is cut. It converged, but the best setting trained on only two
-  seeds out of four and the settings either side of it on none. A result that shows up half the
-  time isn't a reproduction. The code is in the git history.
+- **Parameter counts** are off by 1.3 to 16.2%. I'm fairly sure that one is on the paper, not me.
+- **My recall generalises *better* than the paper's.** Nice, but I can't explain it yet, and that
+  bugs me.
+- **Which controller learns faster?** The paper says the feed-forward one. On copy mine agrees
+  (5,000 sequences against 10,000). On recall it's flipped (39,000 against 22,000). One seed each,
+  so take that with a grain of salt.
+- **Repeat copy didn't make the cut.** It converged, but only on two seeds out of four. Something
+  that works half the time isn't a reproduction, so I left it out. The code is in the git history
+  if you want to have a go.
 
-**What I'd do next.**
+**If I keep going, here's what's next:**
 
-- **Check that it really reads memory.** Overwrite a slot mid-recall and see whether the output
-  changes to match. If the model had memorised the sequence in its controller instead, it
-  wouldn't. No training needed.
-- **Rerun recall with the paper's exact setup** to find out why mine generalises better.
-- **Push the packing further.** Does a model trained on 12 slots pack three vectors per slot on
-  longer sequences? And how do two writes to one slot not destroy each other? Either the erase
-  learns to spare what's already there, or the two land in different parts of the slot. The
-  traces I already have should show which.
+- **Is it really reading the memory?** Overwrite a slot halfway through recall and see whether
+  the output changes to match. If the network had quietly memorised everything in its controller
+  instead, it wouldn't. No training needed, so this one is cheap.
+- **Why is my recall better?** Rerun it with the paper's exact setup and see which difference
+  matters.
+- **How far can the packing go?** Would a 12-slot model squeeze three vectors into a slot on
+  longer sequences? And how do two writes to the same slot not wipe each other out? Either the
+  erase learns to leave the old contents alone, or the two vectors land in different parts of
+  the slot. The traces I already have should show which.
 
 ## Running it
 
