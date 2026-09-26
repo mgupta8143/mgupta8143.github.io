@@ -50,14 +50,23 @@ to see for myself.
 
 ## Setup
 
-**Copy** (Section 4.1): the network reads L random 8-bit vectors and a delimiter, then has to
-emit the same vectors again with no input. L is drawn from 1 to 20, so an example is 2L+1
-timesteps and only the last L are scored. Chance is 84 bits per sequence.
+**Copy** is the simpler of the two. Show the network a short sequence, then stop feeding it
+anything and ask it to say the sequence back. Nothing is available during the recall except what
+it put in memory, so the task is a direct test of whether it can store and retrieve.
 
-**Associative recall** (Section 4.3): an item is three six-bit vectors bounded by delimiters. An
-episode shows two to six items, then a query delimiter and one of the items again. The network
-must emit the item that *followed* the query. Only those three steps are scored, so chance is
-18 bits.
+**Associative recall** asks for indirection instead. Show it a list of items one after another,
+then show it one of those items again as a query, and ask for the item that came *next* in the
+list. Getting it right means finding the query in memory and then finding what sits beside it.
+
+| | Copy | Associative recall |
+|---|---|---|
+| One item is | an 8-bit vector | three 6-bit vectors |
+| An episode shows | 1 to 20 items | 2 to 6 items |
+| Scored steps | the recall phase | the three answer steps |
+| Chance | 84 bits | 18 bits |
+| Paper section | 4.1 | 4.3 |
+
+Training settings, against the paper:
 
 | | Paper | Mine |
 |---|---|---|
@@ -86,75 +95,48 @@ associative recall *identical* NTM settings (1 head, 100 units, 128 × 20) yet l
 recall as 2,769 parameters larger, although it has fewer input and output channels and must
 therefore be smaller.
 
-## What I built
+## Getting it to run at all
 
-```
-src/models/ntm/memory.py       read, write, and the four addressing stages of Figure 2
-src/models/ntm/heads.py        one Linear per head -> weighting -> read or write
-src/models/ntm/controllers.py  feed-forward and LSTM, same interface
-src/models/ntm/ntm.py          controller + heads + memory, one timestep at a time
-src/models/lstm/lstm.py        the baseline
-src/train.py                   training loop, CUDA-graph capture, logging
-src/probe.py                   diagnostics logged beside the cost
-src/tasks/<task>/              data.py makes the task, plots.py draws its figures
-```
+The modelling was the part I understood going in. The part that cost me evenings was finding
+somewhere to run it.
 
-Everything above `src/tasks/` is task-agnostic: a new task is a data module and a settings entry.
+I started on Colab overnight, which failed in the most tedious way possible: the runtime
+disconnects, and you come back in the morning to nothing. Then I ran it locally, which works, but
+a full 500,000-sequence run is hours on a laptop CPU and I wanted to try more than one thing a
+day. I ended up on Modal, which rents GPUs by the second and comes with $30 of free credit a
+month — enough for this entire project, several times over.
 
-Two of the choices in there were mine, not the paper's — how the gradients are clipped and how
-the memory starts out. Both are in the next section, which is where the real work went.
+That turned out to matter more than it sounds. The NTM launches a few hundred tiny GPU kernels
+per sequence, so a GPU spends its time on launch overhead rather than arithmetic, and run
+naively it is barely faster than the laptop. Capturing the whole training step as a CUDA graph —
+one per distinct sequence length, since every batch has a different one — is what makes renting a
+GPU worth it here. It is about 8x.
+
+The code is at
+[github.com/mgupta8143/neural-turing-machines](https://github.com/mgupta8143/neural-turing-machines).
+The addressing lives in `src/models/ntm/memory.py`, one function per stage of the paper's
+Figure 2, and that is the file worth reading if you read one.
 
 ## Four omissions that decide whether it trains
 
 Roughly in the order of how much time each one cost me.
 
-**RMSProp as Graves (2013) defines it.** Section 4.6 cites that form without stating it: centered,
-decay 0.95, damping 1e-4 inside the square root. PyTorch's defaults are 0.99 and 1e-8, and that
-1e-8 inflates the update wherever gradient variance is small, which is most of an LSTM
-controller's recurrent matrix. With PyTorch's defaults the LSTM-controller NTM would reach zero and then *drift back off it*
-later in the run. With the paper's form the same model sits at exactly 0.0000 for its last
-399,000 sequences unbroken. I no longer have the logs from the default-optimiser runs, so take
-the first half of that as a recollection rather than a measurement; the second half is in
-`results/copy/ntm-lstm/log.csv`.
+**RMSProp as Graves (2013) defines it.** Section 4.6 cites that form without stating it:
+centered, decay 0.95, damping 1e-4. PyTorch's defaults are 0.99 and 1e-8, and that 1e-8 inflates
+the update wherever gradient variance is small — which is most of an LSTM controller's recurrent
+matrix. With the defaults the model reaches zero and then drifts back off it.
 
-**Clip the norm, not each component.** This is the one deviation rather than an omission — the
-paper does specify elementwise clipping. The reason is measurable: with the paper's optimiser,
-pre-clip gradient norms on the feed-forward NTM peak at 566 to 176,000 times their running
-median over 8,000 updates. Clipping each component to (-10, 10) lets a spike like that through as
-an update large enough to destroy the addressing. I switched to clipping the norm early and did
-not keep a controlled comparison, so the mechanism is measured and the consequence is inferred.
+**Clip the gradient norm, not each component.** This one is a deviation rather than an omission,
+since the paper does specify elementwise clipping. But with the paper's optimiser, pre-clip
+gradient norms peak at 566 to 176,000 times their running median, and clipping each component to
+(-10, 10) lets a spike like that through as an update large enough to destroy the addressing.
 
-**The starting memory has to break symmetry.** With identical rows every location is
-interchangeable, every location gets the same gradient, and the 128 of them never differentiate —
-the model sits near chance. Random starting values fix it. I found this early, before I was
-keeping logs properly, so I can point at the reasoning and the code but not at a saved run.
+**The starting memory has to break symmetry.** Identical rows means every location gets an
+identical gradient, so the 128 of them never differentiate and the model sits near chance.
 
-**Sharpening underflows if written literally.** Equation 9 raises the weighting to a power. Small
-weights at a high power underflow float32 to zero, the renormalisation divides by zero, and the
-head attends to nothing. `softmax(γ log w)` is the same expression and is stable.
-
-And one that decides how *fast* it trains, which is the one thing here I did not expect at all. **The range of training lengths matters more than the lengths themselves.** Holding the
-model, the loop and the seed fixed and changing only the range on the copy task:
-
-Chance differs with the range, so the comparable number is cost as a fraction of it:
-
-| lengths trained on | cost at 10,000 sequences, as % of chance | solved by 10,000 |
-|---|---|---|
-| 1 to 20 | **0.0%, 3.1%, 46.8%** (three seeds) | 1 of 3 |
-| 1 to 15 | 1.1% (one seed) | yes |
-| **1 to 10** | **61.4%, 67.7%, 69.4%** (three seeds) | **0 of 3** |
-| fixed length 10 | 76.9% (one seed) | no |
-
-Narrowing the range does not make the task easier. The two arms do not overlap: the worst 1-to-20
-seed is still better than the best 1-to-10 seed, and no 1-to-10 seed gets below 61% of chance
-inside the budget. But only one of the three 1-to-20 seeds actually solved it in 10,000
-sequences, so "converges in 7,500" describes a lucky seed and not the arm. The separation is
-real; the speed is not as clean as one run makes it look.
-
-My reading is that the short examples in a wide range are what break the addressing symmetry
-cheaply, and everything else bootstraps off them. It is why I ran the memory-pressure study on a
-range of lengths rather than pinning the sequence. Pinning it would have measured a different
-failure.
+**Sharpening underflows if written literally.** Equation 9 raises the weighting to a power; small
+weights at a high power underflow float32 to zero and the head ends up attending to nothing.
+`softmax(γ log w)` is the same expression and survives.
 
 ## Copy: both NTMs reach zero, the LSTM never does
 
@@ -415,8 +397,3 @@ uv run main.py train --model ntm-ff --sequences 20000
 
 It starts at 84 bits, which is chance, and should be near zero inside ten thousand sequences.
 That takes a few minutes on a laptop. Everything takes `--task`, which defaults to copy.
-
-Most of the results here came off rented A10Gs through Modal. The NTM launches a few hundred tiny
-kernels per sequence, so a GPU spends its time on launch overhead rather than arithmetic. I
-capture the whole training step as a CUDA graph, one per sequence length, which is worth about 8x
-on the GPU and is what makes renting one worthwhile at this size.
