@@ -301,60 +301,46 @@ with real noise: at 15 items a 50-episode sample gave me 1.77 for the feed-forwa
   location holding the item that followed the query. The colour key is printed on the figure.</figcaption>
 </figure>
 
-## New experiment: taking the memory away
+## Something new: what if the memory is too small?
 
-Reproducing the paper tells you the network learns the algorithm the paper says it learns. What I
-wanted to know was whether that is the *only* algorithm it has, or just the one the task happened
-to ask for.
+OK, that's the reproduction done. This part is my own experiment, not something from the paper.
 
-Because the algorithm in the paper is not complicated. Write each vector to the next slot along,
-walk back to the start, read them out in order. My traces confirm it exactly — the write head
-moves +1.00 slots per timestep with its weighting pinned at 0.999, and the read head retraces the
-same path. It is a tape.
+The algorithm the NTM learns for copy is simple: write each vector to the next slot, go back to
+the start, and read them out in order. It's basically a tape. But it only needs to be a tape
+because the memory is huge: 128 slots for at most 20 vectors. So I wanted to know what it does
+when there isn't room for one vector per slot.
 
-It only has to be a tape because the memory is enormous. 128 slots to hold at most 20 vectors is
-six times the room the obvious strategy needs, so the model is never under pressure and the
-obvious strategy never fails. Every published NTM run I could find is like this. So I wanted to
-take the room away and see what came out instead.
+The paper brushes against this in a footnote, explaining why copy eventually stops generalising:
+*"The limiting factor was the size of the memory (128 locations), after which the cyclical shifts
+wrapped around and previous writes were overwritten."* But it only gets there by making sequences
+longer. Keeping the task fixed and shrinking the memory is easier to control.
 
-The paper knows memory size is the binding constraint and says so, in a footnote explaining why
-copy generalisation eventually breaks: *"The limiting factor was the size of the memory (128
-locations), after which the cyclical shifts wrapped around and previous writes were
-overwritten."* But it only ever hits that wall from one side, by making sequences longer. Holding
-the task fixed and taking memory away instead is easier to control and easier to measure.
-
-Nine feed-forward NTMs, copy task, lengths 1 to 20 as before, 30,000 sequences each. The only
-thing that changes between runs is the shape of the memory. The feed-forward controller is the
-only honest choice here: it has no state between timesteps, so anything surviving the delimiter
-had to pass through memory.
+**Setup.** Nine feed-forward NTMs on copy, lengths 1 to 20 as before, 30,000 sequences each.
+Only the shape of the memory changes. I used the feed-forward controller because it has no state
+between timesteps, so anything it remembers has to go through memory.
 
 <figure>
   <img src="/assets/ntm-pressure-curves.png" alt="Bit error against sequence length for six memory sizes, and for four memories of equal total size">
-  <figcaption><strong>New experiment.</strong> Twelve slots hold twenty vectors at zero bit error
-  across every length tested (left); error only appears in earnest at eight. The control (right)
-  rules out capacity — every memory there holds the same 400 numbers, and error still climbs to a
-  third of the bits as the slots get fewer and wider. Dotted lines mark where each memory runs out
-  of slots.</figcaption>
+  <figcaption><strong>Bit error against sequence length.</strong> Left: memories with different
+  numbers of slots. Twelve slots copy twenty vectors with no errors; errors only really start at
+  eight. Right: four memories that all hold the same 400 numbers, split into fewer, wider slots.
+  Error still climbs to a third of the bits, so total capacity isn't what matters. Dotted lines
+  mark where each memory runs out of slots.</figcaption>
 </figure>
 
-**Twelve slots is enough for twenty vectors.** One wrong bit in 2,240 at length 14 and exact zero
-at the other nine lengths tested, which means eight of the twenty vectors have nowhere of their
-own to live. Error only shows up in earnest at eight slots.
+**Twelve slots are enough for twenty vectors.** One wrong bit in 2,240 at length 14, and exactly zero at the
+other nine lengths tested. So eight of the vectors have no slot of their own. Where do they go?
 
-A heatmap of where the head wrote cannot tell packing from overwriting, so the test is a linear
-probe fitted from each slot's contents to each input vector.
+A heatmap of the writes can't tell two vectors packed into one slot from one overwriting the
+other, so I fitted a linear probe from each slot's contents to each input vector.
 
 <figure>
   <img src="/assets/ntm-pressure-decodability.png" alt="Grids of memory slot against input position, shaded by linear decodability">
-  <figcaption>One bright diagonal at 20 slots — one vector per slot, as the paper describes. Two
-  at 12: each slot holds two input vectors and the probe recovers both. At 8 the second diagonal
-  fades and a block of the sequence is not recoverable at all. 400 sequences per panel.</figcaption>
+  <figcaption><strong>Which input vectors can be read back out of which slot.</strong> One
+  diagonal at 20 slots: one vector per slot. Two at 12: each slot holds two vectors and both come
+  back out. At 8 the second diagonal fades and a block of the sequence is lost. 400 sequences per
+  panel.</figcaption>
 </figure>
-
-*Vectors per slot* counts how many input positions a single slot yields; *slots per vector*
-counts the reverse, and stays at 1.00 if nothing is smeared across several slots. A position
-counts as recoverable when the probe's R² exceeds 0.5 — the matrices are close to binary, so the
-counts don't move for thresholds anywhere between about 0.3 and 0.8.
 
 | Slots | Vectors per slot | Slots per vector | Positions recoverable |
 |---|---|---|---|
@@ -362,30 +348,27 @@ counts don't move for thresholds anywhere between about 0.3 and 0.8.
 | 12 | **1.67** | 1.00 | **20 / 20** |
 | 8 | 1.25 | 1.00 | 10 / 20 |
 
-At twenty slots there is one bright diagonal: one vector per slot, as the paper describes. At
-twelve there are **two** diagonals — slot 1 holds vector 1 *and* vector 13, and both come back
-out. 1.67 is exactly 20/12, so every vector is accounted for and the load is even. This is the bit I
-was pleased with. I expected to find it dropping vectors at twelve slots, and instead the load
-came out exactly even, and I still don't have a reason why it should be even rather than
-lopsided. Slots per
-vector stays at 1.00 throughout, which rules out the other explanation: nothing is being smeared
-across slots.
+A position counts as recoverable when the probe's R² is above 0.5; the counts don't change
+anywhere between 0.3 and 0.8.
 
-Eight slots is where it breaks, and it breaks the wrong way round. Under more pressure it packs
-*less*: 1.25 vectors per slot against 1.67 at twelve. Ten of the twenty positions are not
-recoverable from memory at all. So it gives up on half the sequence and keeps the other half
-clean. I had expected the error to spread out.
+- **20 slots:** one vector per slot, exactly as the paper describes.
+- **12 slots:** two vectors per slot. Slot 1 holds vector 1 *and* vector 13, and both come back
+  out. 1.67 is exactly 20/12, so the load is perfectly even. I expected it to drop vectors, and I
+  still don't know why it splits them evenly rather than lopsidedly. Slots per vector stays at
+  1.00, so nothing is smeared across slots.
+- **8 slots:** it breaks, and not how I expected. It packs *less* (1.25 per slot), gives up on
+  half the sequence entirely, and keeps the other half clean. I expected the errors to spread
+  out.
 
 <figure>
   <img src="/assets/ntm-pressure-memory.png" alt="Write and read weightings for memories of 20, 12 and 8 slots">
-  <figcaption>At 20 slots the write head walks one diagonal and stops. At 12 it reaches the end
-  of memory, wraps to the start, and lays a second diagonal over the first. At 8 it wraps twice and
-  the read head loses the thread. Bottom row: the vectors actually written.</figcaption>
+  <figcaption><strong>Where the heads write and read.</strong> At 20 slots the write head walks
+  one diagonal and stops. At 12 it reaches the end of memory, wraps to the start, and lays a
+  second diagonal over the first. At 8 it wraps twice and the read head loses track. Bottom row:
+  the vectors actually written.</figcaption>
 </figure>
 
 ### It runs out of addresses, not room
-
-Every memory in the control arm holds the same 400 numbers, arranged differently:
 
 | Memory | Numbers | Parameters | Bit error at length 20 |
 |---|---|---|---|
@@ -396,73 +379,48 @@ Every memory in the control arm holds the same 400 numbers, arranged differently
 | 4 × 100 | 400 | 54,728 | 34.0% |
 | 2 × 200 | 400 | 106,024 | 35.1% |
 
-Same storage, and error climbs from nothing to a third of the bits as the slots get fewer and
-wider. Width isn't a neutral knob either. Hold the slots at 8 and widen them from 20 to 50 and it also
-gets worse, 12.5% to 24.2%. So this arm doesn't isolate slot count cleanly and I'm not going to
-pretend it does. What it does rule out is capacity. **Twelve slots of width 20 hold 240 numbers and score 0.0%. Eight slots
-of width 50 hold 400 numbers, cost twice the parameters, and score 24.2%.** More room, worse
-result.
+With the same 400 numbers, error climbs from zero to a third of the bits as the slots get fewer
+and wider. Width isn't neutral either: 8 slots get worse going from width 20 to 50. So this
+doesn't isolate slot count cleanly, but it does rule out capacity. **Twelve slots of width 20
+hold 240 numbers and score 0.0%. Eight of width 50 hold 400, with twice the parameters, and score
+24.2%.**
 
-Three caveats on this section. It is one training run per configuration, and 16 slots scoring
-7.4% where 12 scores 0.0% is the sign of it — that is almost certainly variance, which also means
-12 slots scoring zero could be a lucky seed, and the exact breaking point is not pinned down. The
-probe has no null: I never fitted it against a vector the model had not seen, which is the
-control that would tell me how much of the diagonal is the probe rather than the memory. And copy
-forbids slot reuse by construction, because nothing is emitted until the whole input has been
-read — that is what makes packing the only available explanation here, and it also means nothing
-here says what the network would do on a task where recycling is possible.
+Caveats:
 
-## The scorecard
+- **One run per configuration.** 16 slots scored 7.4% where 12 scored 0.0%, which is almost
+  certainly noise. So the exact breaking point isn't pinned down.
+- **The probe has no baseline.** I never tested it on vectors the model hadn't seen, so I can't
+  say how much of the diagonal comes from the probe rather than the memory.
+- **Copy can't reuse slots.** Nothing is output until the whole input has been read, so this says
+  nothing about tasks where the network could recycle memory.
 
-Most of it matched. The curves separate the way the paper shows them separating. Both NTMs reach
-zero cost and the baseline never does. Copy generalises past the training range with no errors.
-The algorithm is there in the memory traces. Associative recall converges at about the episode
-count the paper gives.
+## Conclusion
 
-Three things did not match.
+**What matched.** On both tasks, both NTMs reach zero cost and the LSTM never does. Copy
+generalises to six times its training length with no errors, and the tape algorithm is right
+there in the memory traces. Associative recall converges at about the point the paper says.
 
-And one task isn't here at all. I also reproduced repeat copy, the paper's Section 4.2, and cut
-it. It converged, and I found something I liked: the interpolation gate — the switch that decides
-whether a head uses content addressing or just carries on shifting — predicted generalisation
-cleanly. Every converged run with an open gate beat every run with a closed one, and biasing it
-open took the error at twice the training length from 18.5% down to 0.68%. Then I ran more
-seeds. The setting that produced that trained on two seeds out of four, and the settings either
-side of it trained on none. A result that shows up half the time isn't a reproduction, so the
-task came out rather than going in with a caveat attached. The code for it is in the git history
-if anyone wants to take it further.
+**What didn't.**
 
-**The controller ordering.** The paper says the feed-forward controller "learns faster than NTM
-with an LSTM controller", in the associative recall section. On copy mine agrees: 5,000 sequences
-against 10,000. On associative recall, the task the claim is actually about, mine reverses it —
-22,000 for the LSTM controller against 39,000 for the feed-forward one. One seed each, so I would
-not lean on it, but it is the wrong way round on the task the paper makes the claim for.
+- **Parameter counts** are 1.3 to 16.2% off. I think the mistake is the paper's.
+- **Recall generalisation** is better than published, for reasons I can't pin down yet.
+- **Which controller learns faster.** The paper says the feed-forward one, on associative
+  recall. On copy mine agrees (5,000 sequences against 10,000); on recall it's reversed (39,000
+  against 22,000). One seed each, so I wouldn't lean on it.
+- **Repeat copy** (Section 4.2) is cut. It converged, but the best setting trained on only two
+  seeds out of four and the settings either side of it on none. A result that shows up half the
+  time isn't a reproduction. The code is in the git history.
 
-**Parameter counts**, by 1.3 to 16.2%, as above. I believe this one is the paper's.
+**What I'd do next.**
 
-**Generalisation on associative recall**, where I come out better than the published result. My
-three candidate explanations are in that section.
-
-## Open questions
-
-**Does it actually read the memory, or has it memorised?** Everything the paper offers is
-correlational: weightings that look like an algorithm, outputs that come out right. A model that
-kept the sequence in its controller state and drove the heads along a diagonal anyway would
-produce an identical Figure 6. The test is an intervention — overwrite a memory location
-mid-recall and see whether the output follows. If it reads, the output changes to what you
-injected. Cheap to run, since it needs no training.
-
-**Why is my associative recall generalisation better than the paper's?** Smaller models, same
-settings, better numbers at every point. I have three candidates and no way to choose between
-them without rerunning their configuration, which is the next thing I'd do.
-
-**Does the packing code generalise?** A model trained at twelve slots has learned to put two
-vectors in one place. Give it a sequence longer than it ever saw and find out whether it packs
-three.
-
-**What makes two writes to one slot survive each other?** The mechanism is described but not
-explained. Either the erase vector learns to spare what is already there, or the two add vectors
-land in parts of the slot that do not overlap. Both would show up in traces I already have. No new
-training.
+- **Check that it really reads memory.** Overwrite a slot mid-recall and see whether the output
+  changes to match. If the model had memorised the sequence in its controller instead, it
+  wouldn't. No training needed.
+- **Rerun recall with the paper's exact setup** to find out why mine generalises better.
+- **Push the packing further.** Does a model trained on 12 slots pack three vectors per slot on
+  longer sequences? And how do two writes to one slot not destroy each other? Either the erase
+  learns to spare what's already there, or the two land in different parts of the slot. The
+  traces I already have should show which.
 
 ## Running it
 
