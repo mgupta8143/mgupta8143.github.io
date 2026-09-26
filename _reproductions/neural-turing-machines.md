@@ -19,6 +19,8 @@ fail you can look at the output and see it failing. Everything was trained on re
 GPUs through [Modal](https://modal.com) and on my own laptop, and all of it is in the
 [code](https://github.com/mgupta8143/neural-turing-machines).
 
+The result of this reproduction held up against the reports made in the paper (detailed further below). When training both tasks, both NTM (feedforward and LSTM) variants reach exactly zero cost on the copy and associative-recall tasks and the LSTM baseline never does. We used the exact same configurations, parameters, etc. to make this reproduction hold up. 
+
 Both NTM variants reach exactly zero cost on both tasks and the LSTM baseline never does. That is the paper's central claim, and it held up. On associative recall the
 reproduction generalises *better* than the published numbers at every point I measured, and I
 cannot account for it. Four details the paper omits decide whether the model trains at all, and a
