@@ -11,10 +11,7 @@ date: 2026-09-26
 summary: Copy and associative recall reproduced from scratch. Both NTMs reach zero cost, the LSTM baseline never does, and shrinking the memory below the input size shows the network packing two vectors into one slot.
 ---
 
-The paper is over a decade old, and that is most of why I wanted to build it. It sits right before
-attention took over, and it's asking the question attention ended up answering: how does a network
-decide where to look. These ideas are preliminary to attention and I didn't actually understand
-them. Reading the paper twice didn't fix that. Building it did.
+Although Neural Turing Machines by Graves et al. is over a decade old, I reproduced this paper to understand the thinking behind memory mechanisms prior to Attention is All You Need coming out in 2017, and how these ideas shaped modern transformers, as well as where they failed to stand the test of time. Reading the paper gave much needed intuition on differentiable memory mechanisms and why such a system would work, but when implementing the system it became clear that the NTM, while good in theory, took a very long time to train in real-world tasks.
 
 I picked copy and associative recall out of the five because they felt the simplest, and simple
 means checkable: both have published learning curves I could hold mine against, and when they
@@ -22,9 +19,7 @@ fail you can look at the output and see it failing. Everything was trained on re
 GPUs through [Modal](https://modal.com) and on my own laptop, and all of it is in the
 [code](https://github.com/mgupta8143/neural-turing-machines).
 
-I rebuilt the Neural Turing Machine from the paper and ran two of its five tasks: copy and
-associative recall. Both NTM variants reach exactly zero cost on both tasks and the LSTM baseline
-never does. That is the paper's central claim, and it held up. On associative recall the
+Both NTM variants reach exactly zero cost on both tasks and the LSTM baseline never does. That is the paper's central claim, and it held up. On associative recall the
 reproduction generalises *better* than the published numbers at every point I measured, and I
 cannot account for it. Four details the paper omits decide whether the model trains at all, and a
 fifth thing it never mentions decides how fast.
