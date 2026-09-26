@@ -111,20 +111,23 @@ cost me:
 ## Copy
 
 Each model trained for 500,000 sequences at one sequence per update, which is about 100 minutes
-on a rented A10G for the NTMs and rather less for the LSTM. I already knew the NTM would win; the
-paper told me that. What I wanted was the size of the gap, and whether the LSTM fails the way the
-paper describes.
+on a rented A10G for the NTMs and rather less for the LSTM. The comparison I care about most is
+the plain LSTM against the NTM with an LSTM controller: both are LSTMs, and what separates them is
+the memory. It isn't size. The LSTM baseline has 1,328,136 parameters, twenty times the NTM's
+65,696.
 
-Both came out right. Both NTMs drop to zero inside the first few thousand sequences and the LSTM
-spends half a million getting to one bit. Worth saying plainly: that LSTM has 1,328,136
-parameters and the feed-forward NTM that beats it has 16,096.
+### Learning curves
 
 <figure>
-  <img src="/assets/ntm-copy-curves.png" alt="Learning curves for three models on the copy task">
-  <figcaption>Both NTMs reach zero cost inside the first 10,000 sequences and hold it for the
-  remaining 490,000; the LSTM is still at about one bit after half a million. Compare the paper's
-  Figure 3.</figcaption>
+  <img src="/assets/ntm-copy-curves-lstm-vs-ntm.png" alt="Learning curves on the copy task: the LSTM falls slowly to about one bit, the NTM with an LSTM controller drops to zero almost immediately">
+  <figcaption><strong>The LSTM (blue) against the NTM with an LSTM controller (green) on
+  copy.</strong> Cost per sequence in bits, averaged over every 10,000 sequences. Left, the whole
+  run; right, the same curves cut off at 10 bits, the scale of the paper's Figure 3. The NTM is at
+  zero by 20,000 sequences, blips once to 2.4 bits around 50,000, and stays at zero from then on.
+  The LSTM is still at about one bit after half a million.</figcaption>
 </figure>
+
+The feed-forward NTM isn't drawn because its curve sits on top of the green one. All three:
 
 | Sequences | LSTM | NTM, feed-forward | NTM, LSTM controller |
 |---|---|---|---|
@@ -133,10 +136,11 @@ parameters and the feed-forward NTM that beats it has 16,096.
 | 500k | **1.03** | **0.0000** | **0.0000** |
 | first below 0.05 bits | never | 5,000 | 10,000 |
 
-Both NTMs solve the task inside the first few thousand sequences. Neither holds zero perfectly
-afterwards — both spike occasionally, the LSTM-controller one as late as 46,000 — but the
-LSTM-controller run then sits at exactly 0.0000 for its last 399,000 sequences unbroken. The
-LSTM baseline needs the whole run to reach about one bit.
+Neither NTM holds zero perfectly after first reaching it. Both spike occasionally, the
+LSTM-controller one as late as 46,000, but after that it sits at exactly 0.0000 for its last
+399,000 sequences unbroken.
+
+### Longer sequences than it was trained on
 
 Hitting zero on the training distribution is the easy part. The paper's actual claim is that
 whatever it learned keeps working outside that range, so the test is to hand a trained model
@@ -144,14 +148,35 @@ sequences much longer than anything it saw. Memorisation falls apart the moment 
 training lengths. A model genuinely using the memory shouldn't care how long the sequence is.
 
 <figure>
-  <img src="/assets/ntm-copy-generalisation.png" alt="NTM outputs and targets at lengths 10, 20, 30, 50 and 120">
-  <figcaption>Trained on lengths up to 20, the output is indistinguishable from the target at
-  120 — no duplicated vector and no global shift, the two errors the paper's own Figure 4 caption
-  reports at that length. Lengths 10, 20, 30 and 50 across the top; 120 below.</figcaption>
+  <div class="panel">
+    <span class="panel-label">(a) LSTM</span>
+    <img src="/assets/ntm-copy-generalisation-lstm.png" alt="LSTM targets and outputs at lengths 10, 20, 30, 50 and 120: the outputs smear into wrong values after the first dozen or so vectors">
+  </div>
+  <div class="panel">
+    <span class="panel-label">(b) NTM with LSTM controller</span>
+    <img src="/assets/ntm-copy-generalisation-ntm-lstm.png" alt="NTM targets and outputs at lengths 10, 20, 30, 50 and 120: outputs match targets exactly">
+  </div>
+  <figcaption><strong>Both models copying sequences longer than any they trained on.</strong>
+  Training used lengths 1 to 20. In each pair the target is on top and the model's output
+  underneath, one column per timestep and one row per bit; dark red is 1, dark blue is 0, and
+  anything in between is the model hedging. Top row, lengths 10, 20, 30 and 50; bottom row, 120.
+  Compare the paper's Figures 4 (NTM) and 5 (LSTM).</figcaption>
 </figure>
 
-Percentage of output bits wrong, 20 sequences per length. The LSTM row moves a point or two
-between draws; the NTM zeros do not.
+The two fail completely differently, or rather one of them doesn't fail. The LSTM gets the start
+of every sequence right and then loses its place: by length 30 the back half of its output is a
+blur, and at 120 it gives up and repeats roughly the same vector to the end. Whatever it learned
+is tied to the lengths it saw. The NTM's output at 120 is indistinguishable from the target, with
+no duplicated vector and no global shift, which are the two errors the paper's own Figure 4
+caption reports at that length.
+
+<figure>
+  <img src="/assets/ntm-copy-error-vs-length.png" alt="Percentage of output bits wrong against test length for the three models">
+  <figcaption><strong>Error against test length.</strong> Percentage of output bits wrong, 20
+  sequences per length; the shaded band is the lengths seen in training, and 50% is chance. The
+  LSTM climbs towards chance as soon as it leaves the training range. Both NTMs stay at 0% out
+  to 120; their lines are nudged apart slightly so both show.</figcaption>
+</figure>
 
 | Test length | 10 | 20 | 30 | 50 | 80 | 120 |
 |---|---|---|---|---|---|---|
@@ -159,9 +184,12 @@ between draws; the NTM zeros do not.
 | NTM, feed-forward | 0.0% | 0.0% | **0.0%** | **0.0%** | **0.0%** | **0.0%** |
 | NTM, LSTM controller | 0.0% | 0.0% | **0.0%** | **0.0%** | **0.0%** | **0.0%** |
 
-Both NTMs copy perfectly at six times their training length. This is better than the paper's own result: its Figure 4 caption reports "a few more local errors and one global error"
-at length 120, where a vector is duplicated and everything after it shifts by one. Mine makes
-neither mistake.
+The LSTM row moves a point or two between draws; the NTM zeros do not. Both NTMs copy perfectly
+at six times their training length. That's better than the paper's own result: its Figure 4
+caption reports "a few more local errors and one global error" at length 120, where a vector is
+duplicated and everything after it shifts by one. Mine makes neither mistake.
+
+### What it's doing in memory
 
 So it generalises. Now the *how*, and this is the part of the NTM I actually like: you can just
 look. Every read and write leaves a weighting over memory, so you get the addressing timestep by
