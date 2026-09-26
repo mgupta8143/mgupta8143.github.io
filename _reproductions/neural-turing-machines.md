@@ -108,27 +108,6 @@ cost me:
   underflows small weights to zero in float32 and leaves the head attending to nothing.
   `softmax(γ log w)` is the same expression and doesn't underflow.
 
-### One more: the range of training lengths
-
-Copy trains on lengths drawn from 1 to 20. I expected a narrower range to be easier; it made
-training fail. Costs are shown as a percentage of chance, since chance changes with the range:
-
-| lengths trained on | cost at 10,000 sequences, as % of chance | solved by 10,000 |
-|---|---|---|
-| 1 to 20 | **0.0%, 3.1%, 46.8%** (three seeds) | 1 of 3 |
-| 1 to 15 | 1.1% (one seed) | yes |
-| **1 to 10** | **61.4%, 67.7%, 69.4%** (three seeds) | **0 of 3** |
-| fixed length 10 | 76.9% (one seed) | no |
-
-- **Narrow ranges fail.** The worst 1-to-20 seed beats the best 1-to-10 seed, and no 1-to-10
-  seed gets below 61% of chance. A fixed length is worse still.
-- **Speed isn't pinned down.** Only one of the three 1-to-20 seeds solved it within 10,000
-  sequences.
-- **My guess at why:** short sequences in a wide range break the addressing symmetry cheaply, and
-  everything else builds on them. Take them away and there's nothing to start from.
-- **This is why the memory experiment below trains on a range of lengths.** A fixed length would
-  have measured this failure instead of the one I was after.
-
 ## Copy
 
 Each model trained for 500,000 sequences at one sequence per update, which is about 100 minutes
