@@ -11,38 +11,15 @@ date: 2026-09-26
 summary: Copy and associative recall reproduced from scratch. Both NTMs reach zero cost, the LSTM baseline never does, and shrinking the memory below the input size shows the network packing two vectors into one slot.
 ---
 
-Although Neural Turing Machines by Graves et al. is over a decade old, I reproduced this paper to understand the thinking behind memory mechanisms prior to Attention is All You Need coming out in 2017, and how these ideas shaped modern transformers, as well as where they failed to stand the test of time. Reading the paper gave much needed intuition on differentiable memory mechanisms and why such a system would work, but when implementing the system it became clear that the NTM, while good in theory, took a very long time to train in real-world tasks.
+Although Neural Turing Machines by Graves et al. is over a decade old, I reproduced this paper to understand the thinking behind memory mechanisms prior to Attention is All You Need coming out in 2017, and how these ideas shaped modern transformers, as well as where they failed to stand the test of time. NTMs in theory sound like a great mechanism for giving controller networks additional memory capabilities, but in practice, training often takes significantly more overhead than SOTA transformers, and often leads to unstable training.
 
-I picked copy and associative recall out of the five because they felt the simplest, and simple
-means checkable: both have published learning curves I could hold mine against, and when they
+I reproduced the copy and associative recall tasks out of the five in the paper because they were the most checkable: both have published learning curves I could hold mine against, and when they
 fail you can look at the output and see it failing. Everything was trained on rented A10G
 GPUs through [Modal](https://modal.com) and on my own laptop, and all of it is in the
 [code](https://github.com/mgupta8143/neural-turing-machines).
 
-The result of this reproduction held up against the reports made in the paper (detailed further below). When training both tasks, both NTM (feedforward and LSTM) variants reach exactly zero cost on the copy and associative-recall tasks and the LSTM baseline never does. We used the exact same configurations, parameters, etc. to make this reproduction hold up. 
+The result of this reproduction held up against the reports made in the paper (detailed further below). When training both tasks, both NTM (feedforward and LSTM) variants reach exactly zero cost on the copy and associative-recall tasks and the LSTM baseline never does. We used the exact same configurations, parameters, etc. to make this reproduction hold up. The paper's central claim is that an NTM should learn an algorithm rather than fit a task when an external differentiable memory is provided. It supports this with its Figure 6, which shows the read and write heads tracing a clean diagonal across memory, and it goes as far as describing the algorithm it believes the network discovered: write each input vector to a successive memory location, then return to the start and read them back in order.
 
-Both NTM variants reach exactly zero cost on both tasks and the LSTM baseline never does. That is the paper's central claim, and it held up. On associative recall the
-reproduction generalises *better* than the published numbers at every point I measured, and I
-cannot account for it. Four details the paper omits decide whether the model trains at all, and a
-fifth thing it never mentions decides how fast.
-
-Then, once I had something that worked, I ran an experiment the paper does not: shrinking the
-memory below the size of the input. It packs two vectors into one memory slot and recovers both.
-
-I chose a reproduction because you cannot fudge one. The answer is already published: either your
-curve lands on theirs or it does not, and if it does not you have to say so and work out why.
-
-## The claim: it learns an algorithm, not a fit
-
-The paper argues that a neural network given an external memory and a differentiable way to
-address it will learn *algorithms* rather than just fit the task. It supports this with Figure 6,
-which shows the read and write heads tracing a clean diagonal across memory, and it goes as far
-as describing the algorithm it believes the network discovered: write each input vector to a
-successive memory location, then return to the start and read them back in order.
-
-That's a strong claim, and it's why I wanted to build this. I believed the learning curves
-without checking them. The word I didn't believe was *algorithm*, and that's the one you can only
-settle by opening the memory and looking.
 
 ## Setup
 
@@ -84,14 +61,7 @@ The parameter counts don't reconcile, and not by a rounding error:
 | NTM, LSTM controller | 65,696 | 67,561 | 65,054 | 70,330 |
 
 Mine come out consistently smaller. I spent longer than I want to admit looking for a reading of
-"4 heads" that makes the numbers come out, and there isn't one. Reading
-"4 heads" as four in total rather than four of each puts associative recall 56% under instead of
-16%, and reading it as four read heads and one write head puts it 51% under. I think the published numbers are not
-reconstructible from the published architectures. Table 2 supports that: it gives copy and
-associative recall *identical* NTM settings (1 head, 100 units, 128 × 20) yet lists associative
-recall as 2,769 parameters larger, although it has fewer input and output channels and must
-therefore be smaller. That isn't a discrepancy with my code. That's Table 2 disagreeing with
-itself.
+"4 heads" that makes the numbers come out, and there isn't one.
 
 ## Getting it to run at all
 
