@@ -6,7 +6,6 @@ layout: default
   <p class="subtitle">
     Reproduction of {% if page.paper_url %}<a href="{{ page.paper_url }}">{{ page.paper }}</a>{% else %}{{ page.paper }}{% endif %}{% if page.code %} &middot; <a href="{{ page.code }}">code</a>{% endif %}{% if page.status and page.status != 'done' %} &middot; {{ page.status }}{% endif %}{% if page.date %} &middot; {{ page.date | date: '%B %Y' }}{% endif %}
   </p>
-  {% if page.summary %}<p class="lede">{{ page.summary }}</p>{% endif %}
   {{ content }}
 </article>
 {% if content contains "mermaid" %}

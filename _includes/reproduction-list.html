@@ -6,6 +6,7 @@
     <div class="title"><a href="{{ entry.url | relative_url }}">{{ entry.title }}</a></div>
     <div class="who">{{ entry.authors | default: entry.paper }}</div>
     <div class="where">{{ entry.published_in }}{% if entry.status %}{% if entry.published_in %} &middot; {% endif %}{{ entry.status }}{% endif %}</div>
+    {% if entry.summary %}<div class="blurb">{{ entry.summary }}</div>{% endif %}
     <div class="links">
       <a href="{{ entry.url | relative_url }}">Report</a>
       {% if entry.code %}<a href="{{ entry.code }}">Code</a>{% endif %}
