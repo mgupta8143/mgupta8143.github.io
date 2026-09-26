@@ -85,13 +85,19 @@ The code is at
 The addressing lives in `src/models/ntm/memory.py`, one function per stage of the paper's
 Figure 2. If you only open one file, open that one.
 
-## Four omissions that decide whether it trains
+## What the paper doesn't tell you
 
-In order of how much time each one cost me:
+Following the paper as written, the model doesn't train. A few details it leaves out decide
+whether it does, and I found each one by getting it wrong first. In order of how much time each
+cost me:
 
-- **Use RMSProp as Graves (2013) defines it.** The paper cites this form without stating it:
-  centered, decay 0.95, damping 1e-4. PyTorch's defaults (0.99 and 1e-8) make updates too large
-  wherever gradient variance is small, so the model reaches zero cost and then drifts back off it.
+- **Use the right version of RMSProp.** The paper trains with RMSProp but only points to Graves
+  (2013) for the details. That version differs from PyTorch's built-in `RMSprop` in three
+  settings: it's centered (it subtracts the running mean of the gradient), it averages over a
+  shorter window (decay 0.95, not 0.99), and it adds a much larger constant to the denominator
+  (1e-4, not 1e-8). The constant is the one that matters. Where gradients barely vary, PyTorch's
+  tiny constant means dividing by almost nothing, so those steps come out huge. With PyTorch's
+  defaults the model reaches zero cost and then drifts back off it.
 - **Clip the gradient norm, not each component.** Strictly a deviation, since the paper does say
   to clip each component to (-10, 10). But gradient spikes reach 566 to 176,000 times their
   running median, and elementwise clipping lets them through as updates big enough to wreck the
@@ -102,7 +108,7 @@ In order of how much time each one cost me:
   underflows small weights to zero in float32 and leaves the head attending to nothing.
   `softmax(γ log w)` is the same expression and doesn't underflow.
 
-### A fifth: the range of training lengths
+### One more: the range of training lengths
 
 Copy trains on lengths drawn from 1 to 20. I expected a narrower range to be easier; it made
 training fail. Costs are shown as a percentage of chance, since chance changes with the range:
