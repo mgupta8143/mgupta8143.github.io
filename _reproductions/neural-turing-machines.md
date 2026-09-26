@@ -11,6 +11,18 @@ date: 2026-09-26
 summary: Copy and associative recall reproduced from scratch. Both NTMs reach zero cost, the LSTM baseline never does, and shrinking the memory below the input size shows the network packing two vectors into one slot.
 ---
 
+The paper is over a decade old, and that is most of why I wanted to build it. It sits just before
+attention took over, and the questions it is asking — how does a network decide where to look,
+how does it put something down and find it again later — are the ones attention went on to answer
+differently. Working through the version that came first is a way to understand what the later
+answer was actually replacing.
+
+I picked copy and associative recall out of the five tasks because they are the simplest, which
+makes them the easiest to check: both have published learning curves I could hold mine against,
+and both fail in ways you can see rather than only measure. Everything was trained on rented A10G
+GPUs through [Modal](https://modal.com) and on my own laptop, and all of it is in the
+[code](https://github.com/mgupta8143/neural-turing-machines).
+
 I rebuilt the Neural Turing Machine from the paper and ran two of its five tasks: copy and
 associative recall. Both NTM variants reach exactly zero cost on both tasks and the LSTM baseline
 never does. That is the paper's central claim, and it held up. On associative recall the

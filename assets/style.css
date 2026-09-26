@@ -116,6 +116,8 @@ th, td { text-align: left; padding: 6px 20px 6px 0; border-bottom: 1px solid var
 blockquote { margin: 18px 0; padding-left: 18px; border-left: 3px solid var(--line); color: var(--grey); }
 hr { border: none; border-top: 1px solid var(--line); margin: 40px 0; }
 
+.report-title { font-size: 2.2rem; text-align: center; }
+article .subtitle { text-align: center; margin-bottom: 40px; }
 .pub .blurb {
   font: 400 .95rem/1.5 "Source Serif 4", Charter, Georgia, serif;
   color: var(--grey); margin-top: 4px; max-width: 42rem;

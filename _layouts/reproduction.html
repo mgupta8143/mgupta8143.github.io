@@ -2,9 +2,9 @@
 layout: default
 ---
 <article>
-  <h1 style="font-size:2.2rem">{{ page.title }}</h1>
+  <h1 class="report-title">{{ page.title }}</h1>
   <p class="subtitle">
-    Reproduction of {% if page.paper_url %}<a href="{{ page.paper_url }}">{{ page.paper }}</a>{% else %}{{ page.paper }}{% endif %}{% if page.code %} &middot; <a href="{{ page.code }}">code</a>{% endif %}{% if page.status and page.status != 'done' %} &middot; {{ page.status }}{% endif %}{% if page.date %} &middot; {{ page.date | date: '%B %Y' }}{% endif %}
+    Reproduction of {% if page.paper_url %}<a href="{{ page.paper_url }}">{{ page.paper }}</a>{% else %}{{ page.paper }}{% endif %}{% if page.status and page.status != 'done' %} &middot; {{ page.status }}{% endif %}{% if page.date %} &middot; {{ page.date | date: '%B %Y' }}{% endif %}
   </p>
   {{ content }}
 </article>
